@@ -1,26 +1,49 @@
-import React from 'react';
-import logo from './logo.svg';
-import './App.css';
+import React, { useEffect } from "react";
+import gql from "graphql-tag";
+import { MockedProvider } from "@apollo/react-testing";
+import { useQuery } from "@apollo/react-hooks";
 
-function App() {
-  return (
-    <div className="App">
-      <header className="App-header">
-        <img src={logo} className="App-logo" alt="logo" />
-        <p>
-          Edit <code>src/App.js</code> and save to reload.
-        </p>
-        <a
-          className="App-link"
-          href="https://reactjs.org"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          Learn React
-        </a>
-      </header>
-    </div>
-  );
+const GET_DOG = gql`
+  query getGod {
+    dog {
+      name
+    }
+  }
+`;
+
+function Dog() {
+  const { data, loading, error, startPolling, stopPolling } = useQuery(GET_DOG);
+
+  // Source of the problem
+  useEffect(() => {
+    startPolling(20000);
+    return () => {
+      stopPolling();
+    };
+  }, [startPolling, stopPolling]);
+
+  if (loading) return <p>Loading...</p>;
+  if (error) {
+    console.error(error);
+    return <p>Error!</p>;
+  }
+
+  return <p>{JSON.stringify(data)}</p>;
 }
 
-export default App;
+const mocks = [
+  {
+    request: {
+      query: GET_DOG,
+    },
+    result: { data: { dog: { name: "Doggy" } } },
+  },
+];
+
+export function App() {
+  return (
+    <MockedProvider mocks={mocks} addTypename={false}>
+      <Dog />
+    </MockedProvider>
+  );
+}
